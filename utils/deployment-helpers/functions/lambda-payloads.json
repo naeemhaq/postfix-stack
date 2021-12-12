@@ -1,0 +1,39 @@
+{
+    "SsmParameter": {
+        "lambda": {
+            "RequestType": "CREATE",
+            "ResourceProperties": {
+                "Name": "/dev/ArcGisCommon:SiteAdminPassword",
+                "IsSecret": "True"
+            },
+            "StackId": "stack-123",
+            "RequestId": "request-123",
+            "LogicalResourceId": "logical-resource-id-123"
+        }
+    },
+    "Ec2AttrByTag": {
+        "lambda": {
+            "RequestType": "CREATE",
+            "ResourceProperties": {
+                "Filter": "{\"Tag\": {\"Name\": \"gccp:ops:label\", \"Value\": \"arcgis-v2-archst\"}}",
+                "TagName": "gccp:ops:host-name"
+            },
+            "StackId": "stack-123",
+            "RequestId": "request-123",
+            "LogicalResourceId": "logical-resource-id-123"
+        }
+    },
+    "TgwRoute": {
+        "lambda": {
+            "RequestType": "CREATE",
+            "ResourceProperties": {
+                "RouteTableId": "rt-1234",
+                "DestinationCidr": "0.0.0.0/0",
+                "TransitGatewayId": "tgw-1234"
+            },
+            "StackId": "stack-123",
+            "RequestId": "request-123",
+            "LogicalResourceId": "logical-resource-id-123"
+        }
+    }
+}

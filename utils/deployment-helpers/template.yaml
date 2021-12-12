@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: Deployment helper functions
+Resources:
+
+  # Ec2AttrByTag:
+  #   Type: 'AWS::Serverless::Function'
+  #   DependsOn: 'LambdaExecutionRole'
+  #   Properties:
+  #     Handler: functions/ec2_attr_by_tag.lambda_handler
+  #     Runtime: python3.6
+  #     Description: 'Function for retriving parameters from SSM'
+  #     MemorySize: 128
+  #     Timeout: 15
+  #     CodeUri: .debug/
+  #     Role: !GetAtt LambdaExecutionRole.Arn
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: '/'
+      Policies:
+      - PolicyName: allow-lambda-access-ssm-param-store
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
+          - Effect: Allow
+            Action:
+              - ec2:Describe*
+              - ssm:GetParameter
+              - secretsmanager:GetSecretValue
+            Resource: '*'

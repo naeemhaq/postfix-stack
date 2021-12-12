@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Creates ECS cluster for gsip container
+Description: Creates ECS cluster for Postfix container
 
 Parameters:
   Environment:
@@ -29,11 +29,6 @@ Parameters:
   ServiceName:
     Type: String
     Default: sonar-qube
-  DomainName: 
-    Type: String
-    Default: pub.gsip-dev.geo.ca
-  NeptuneDB:
-    Type: String
   TargetGroupArn:
     Description: TargetGroup Arn of ALB
     Type: String
@@ -76,7 +71,7 @@ Resources:
     Properties:
       Code:
         S3Bucket: !Ref DeploymentBucket
-        S3Key: !Sub aws-gccp-common/utils/deployment-helpers/deployment-helpers.zip
+        S3Key: !Sub utils/deployment-helpers/deployment-helpers.zip
       Handler: functions/log_group.handler
       Runtime: python3.6
       Timeout: 600
@@ -87,7 +82,7 @@ Resources:
     Type: Custom::LogGroup
     Properties:
       ServiceToken: !GetAtt LogGroupHelper.Arn
-      LogGroupName: !Sub '/${Environment}/geoconnex/gsip'
+      LogGroupName: !Sub '/${Environment}/postfix'
       RetentionInDays: 7
 
   EcsCluster:
@@ -96,7 +91,7 @@ Resources:
       ClusterName: !Ref AWS::StackName
 
 
-  GSIPTaskDefinition:
+  PostfixTaskDefination:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Sub '${AWS::StackName}'
@@ -109,17 +104,13 @@ Resources:
         - FARGATE
       ContainerDefinitions:
         - Name: !Ref ServiceName
-          Image: '279053176446.dkr.ecr.ca-central-1.amazonaws.com/gsip-manual:latest'
+          Image: 'boky/postfix'
           PortMappings: 
             - ContainerPort: !Ref ContainerPort
           Essential: true
           Environment:
-            - Name: GSIP_APP
-              Value: !Sub 'https://${DomainName}/gsip'
-            - Name: GSIP_BASEURI
-              Value: !Sub 'https://${DomainName}'
-            - Name: GSIP_TRIPLESTORE
-              Value: !Ref NeptuneDB
+            - Name: ALLOWED_SENDER_DOMAINS
+              Value: !Sub 'nqtech.ca'
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -127,7 +118,7 @@ Resources:
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: !Sub '${AWS::StackName}'
 
-  GSIPService:
+  PostfixService:
     Type: AWS::ECS::Service
     Properties:
       ServiceName: !Ref ServiceName
@@ -143,7 +134,7 @@ Resources:
             - !Ref InternalOzAzASubnet
             - !Ref InternalOzAzBSubnet
       DesiredCount: 1
-      TaskDefinition: !Ref GSIPTaskDefinition
+      TaskDefinition: !Ref PostfixTaskDefination
       LoadBalancers:
         - ContainerName: !Ref ServiceName
           ContainerPort: !Ref ContainerPort
@@ -183,10 +174,10 @@ Outputs:
     Value: !GetAtt LogGroupHelper.Arn
     Export:
       Name: LogGroupHelperLambdaArn
-  GSIPServiceName:
-    Value: !GetAtt GSIPService.Name
+  PostfixServiceName:
+    Value: !GetAtt PostfixService.Name
     Export:
-      Name: GSIPServiceName
+      Name: PostfixServiceName
   EcsClusterArn:
     Value: !GetAtt EcsCluster.Arn
     Export:
