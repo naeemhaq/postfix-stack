@@ -1,0 +1,194 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates ECS cluster for gsip container
+
+Parameters:
+  Environment:
+    Type: String
+    Description: Type of App Environment - dev stage prod
+    Default: dev
+  InternalOzAzASubnet:
+    Description: Interal Oz Az A Subnet
+    Type:  String
+    Default: subnet-063c6bc3f7edb7d70
+  InternalOzAzBSubnet:
+    Description: Internal Oz Az B Subnet
+    Type:  String
+    Default: subnet-0815f6c186c5aec22
+  EcsSecurityGroupId:
+    Description: The array of Subnet IDs for the Subnet group
+    Type: String
+    Default: sg-0c03d7e992a5c48b2
+  DeploymentBucket:
+    Description: bucket for sourcecode files
+    Type: String
+    Default: naeem-bucket
+  ContainerPort:
+    Description: Container port to be exposed to service. 
+    Type: String
+    Default: 9000
+  ServiceName:
+    Type: String
+    Default: sonar-qube
+  DomainName: 
+    Type: String
+    Default: pub.gsip-dev.geo.ca
+  NeptuneDB:
+    Type: String
+  TargetGroupArn:
+    Description: TargetGroup Arn of ALB
+    Type: String
+    
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, 'prod']
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Resource: '*'
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:PutRetentionPolicy'
+                  - 'logs:DescribeSubscriptionFilters'
+                  - 'logs:DescribeLogGroups'
+                  - 'logs:DeleteSubscriptionFilter'
+                  - 'logs:PutSubscriptionFilter'
+  LogGroupHelper:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref DeploymentBucket
+        S3Key: !Sub aws-gccp-common/utils/deployment-helpers/deployment-helpers.zip
+      Handler: functions/log_group.handler
+      Runtime: python3.6
+      Timeout: 600
+      Role: !GetAtt
+        - LambdaExecutionRole
+        - Arn
+  LogGroup:
+    Type: Custom::LogGroup
+    Properties:
+      ServiceToken: !GetAtt LogGroupHelper.Arn
+      LogGroupName: !Sub '/${Environment}/geoconnex/gsip'
+      RetentionInDays: 7
+
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref AWS::StackName
+
+
+  GSIPTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub '${AWS::StackName}'
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !Ref TaskExecutionRole
+      TaskRoleArn: !Ref TaskExecutionRole
+      Cpu: 1024
+      Memory: 2048
+      RequiresCompatibilities:
+        - FARGATE
+      ContainerDefinitions:
+        - Name: !Ref ServiceName
+          Image: '279053176446.dkr.ecr.ca-central-1.amazonaws.com/gsip-manual:latest'
+          PortMappings: 
+            - ContainerPort: !Ref ContainerPort
+          Essential: true
+          Environment:
+            - Name: GSIP_APP
+              Value: !Sub 'https://${DomainName}/gsip'
+            - Name: GSIP_BASEURI
+              Value: !Sub 'https://${DomainName}'
+            - Name: GSIP_TRIPLESTORE
+              Value: !Ref NeptuneDB
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !GetAtt LogGroup.Value
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: !Sub '${AWS::StackName}'
+
+  GSIPService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Ref ServiceName
+      Cluster: !Ref EcsCluster
+      LaunchType: FARGATE
+      PlatformVersion: '1.4.0'
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref EcsSecurityGroupId
+          Subnets:
+            - !Ref InternalOzAzASubnet
+            - !Ref InternalOzAzBSubnet
+      DesiredCount: 1
+      TaskDefinition: !Ref GSIPTaskDefinition
+      LoadBalancers:
+        - ContainerName: !Ref ServiceName
+          ContainerPort: !Ref ContainerPort
+          TargetGroupArn: !Ref TargetGroupArn
+
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ecs-task-execution
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: ecs-task-execution
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                Resource:
+                  - 'arn:aws:s3:::naeem-bucket/*'
+             
+Outputs:
+  LogGroupHelperLambdaArn:
+    Value: !GetAtt LogGroupHelper.Arn
+    Export:
+      Name: LogGroupHelperLambdaArn
+  GSIPServiceName:
+    Value: !GetAtt GSIPService.Name
+    Export:
+      Name: GSIPServiceName
+  EcsClusterArn:
+    Value: !GetAtt EcsCluster.Arn
+    Export:
+      Name: EcsClusterArn
+  

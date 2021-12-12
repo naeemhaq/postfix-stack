@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Private ALB for Postfix services
+
+Parameters:
+  Prefix:
+    Type: String
+    Description: Default prefix for all resources
+  Environment:
+    Type: String
+    Default: dev
+    Description: Type of environments - ply dev stage prod dr
+  VpcId:
+    Type: String
+    Description: VPC ID for ArcGIS
+  PazAzASubnet:
+    Type: String
+    Description: VPC PAZ availability zone A subnet
+  PazAzBSubnet:
+    Type: String
+    Description: VPC PAZ availability zone B subnet
+  AlbSecurityGroupId:
+    Type: String
+    Description: Security group to be used for this ALB
+  Email:
+    Type: String
+    Description: Email for notificaiton topic
+    Default: naeem.ul-haq@nrcan-rncan.gc.ca
+  
+Resources:
+  Alb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internal
+      Name: !Sub '${Prefix}-internal'
+      Subnets:
+        - !Ref PazAzASubnet
+        - !Ref PazAzBSubnet
+      SecurityGroups:
+        - !Ref AlbSecurityGroupId
+
+  AlbListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AlbTargetGroup
+      LoadBalancerArn: !Ref Alb
+      Port: 80
+      Protocol: HTTP
+
+  AlbTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      TargetType: ip
+      HealthCheckIntervalSeconds: 300
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      HealthCheckPath: '/'
+      Matcher:
+        HttpCode: '200'
+      Port: 587
+      Protocol: HTTP
+      UnhealthyThresholdCount: 4
+      VpcId: !Ref VpcId
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '30'
+
+  AlarmNotificationTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      DisplayName: 'UnhealthyHostCount'
+      TopicName: 'UnhealthyHostCountTopic'
+      Subscription:
+        - Endpoint:
+            Ref: Email
+          Protocol: email
+  
+  UnHealthyHostCountAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmName: !Sub ${Prefix}-alb-alarm
+      AlarmDescription: Alarms when there is any unhealthy target
+      AlarmActions:
+        - Ref: AlarmNotificationTopic
+      MetricName: UnHealthyHostCount
+      Namespace: AWS/ApplicationELB
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt Alb.LoadBalancerFullName
+        - Name: TargetGroup
+          Value:
+            'Fn::Select':
+              - '5'
+              - 'Fn::Split':
+                  - ':'
+                  - Ref: AlbTargetGroup
+      EvaluationPeriods: '1'
+      Period: '60'
+      Statistic: Maximum
+      Threshold: '1'
+
+  EventBridgeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        Fn::Sub: 
+          - |
+            {
+              "source": [ "aws.cloudwatch" ],
+              "detail-type": [ "CloudWatch Alarm State Change" ],
+              "resources": [ "${AlarmArn}"]
+            }
+          - 
+            AlarmArn: !GetAtt
+              - UnHealthyHostCountAlarm
+              - Arn
+      Targets:
+        - 
+          Arn: !Ref AlarmNotificationTopic
+          Id: 
+            Fn::GetAtt: 
+              - AlarmNotificationTopic
+              - TopicName     
+Outputs:
+  InternalAlbTargetGroupArn:
+    Value: !Ref AlbTargetGroup
+    Export:
+      Name: InternalAlbTargetGroupArn
+  InternalAlbCanonicalHostedZoneID:
+    Value: !GetAtt
+      - Alb
+      - CanonicalHostedZoneID
+  InternalAlbDnsName:
+    Value: !GetAtt
+      - Alb
+      - DNSName

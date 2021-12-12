@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Setup Postfix stack
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Configuration
+        Parameters:
+          - Environment
+          - DeploymentBucket
+          - Prefix
+      - Label:
+          default: Postfix configuration
+        Parameters:
+          - ContainerPort
+          - ServiceName
+      - Label:
+          default: Interal ALB Configuration
+        Parameters:
+          - Email
+
+Parameters:
+  Prefix:
+    Type: String
+    Description: Default prefix for all resources
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stage
+      - prod
+    Default: dev
+    Description: Type of App Environment - dev stage prod
+  DeploymentBucket:
+    Type: String
+    Description: Name of the bucket where all the deployment files can be found
+    Default: nupublicbucket
+  ContainerPort:
+    Type: String 
+    Default: 587
+  ServiceName:
+    Description: Name of the Container service
+    Type: String
+    Default: postfix
+  Email:
+    Type: String
+    Description: Email for notificaiton topic
+    Default: naeem.ul-haq@nqtech.ca
+
+Resources:
+  vpc:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${DeploymentBucket}/cloudformation-templates/vpc-multi-tier.yaml'
+
+  securityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !GetAtt vpc.Outputs.oVpcId
+      GroupDescription: main security group
+      SecurityGroupIngress: 
+      - IpProtocol: '-1'
+        CidrIp: '0.0.0.0/0'
+
+  InternalAlb:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Environment: !Ref Environment
+        Prefix: !Ref AWS::StackName
+        VpcId: !GetAtt vpc.Outputs.oVpcId
+        PazAzASubnet: !GetAtt vpc.Outputs.oTier1Subnet1
+        PazAzBSubnet: !GetAtt vpc.Outputs.oTier1Subnet2
+        AlbSecurityGroupId: !Ref securityGroup
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${DeploymentBucket}/cloudformation-templates/internal-alb.yaml'
+
+  postfix:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Environment: !Ref Environment
+        InternalOzAzASubnet: !GetAtt vpc.Outputs.oTier1Subnet1
+        InternalOzAzBSubnet: !GetAtt vpc.Outputs.oTier1Subnet2
+        EcsSecurityGroupId: !Ref securityGroup
+        DeploymentBucket: !Ref DeploymentBucket
+        ContainerPort: !Ref ContainerPort
+        ServiceName: !Ref ServiceName
+        TargetGroupArn: !GetAtt InternalAlb.Outputs.InternalAlbTargetGroupArn
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${DeploymentBucket}/cloudformation-templates/postfix.yaml'
+ 
+  TargetGroupIpUpdater:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        S3BucketName: !Ref DeploymentBucket
+        S3BucketKey: utils/nlb-ip-updater/populate_NLB_TG_with_ALB.zip
+        InternalALBDNSName: !GetAtt InternalAlb.Outputs.InternalAlbDnsName
+        ALBListenerPort: "443"
+        NLBTargetGroupARN: !GetAtt InternalAlb.Outputs.AlbTargetGroupArnGSIP
+        SubnetA: !GetAtt vpc.Outputs.oTier1Subnet1
+        SubnetB: !GetAtt vpc.Outputs.oTier1Subnet2
+        SecurityGroupId: !Ref securityGroup
+      TemplateURL: !Sub 'https://s3.amazonaws.com/${DeploymentBucket}/utils/nlb-ip-updater/poplulate_NLB_TG_with_ALB.json'
+      
