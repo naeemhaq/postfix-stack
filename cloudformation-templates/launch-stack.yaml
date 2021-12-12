@@ -22,6 +22,7 @@ Metadata:
 Parameters:
   Prefix:
     Type: String
+    Default: cf-
     Description: Default prefix for all resources
   Environment:
     Type: String

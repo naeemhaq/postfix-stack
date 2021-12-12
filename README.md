@@ -1,6 +1,6 @@
 # AWS Postfix Container Stack
 
-AWS cloudformation stack that deploys postfix MTA container instances in AWS Fargate with: 
+A multi-level AWS cloudformation stacks that deploys infrastructure for postfix MTA container instances in AWS Fargate with: 
 
 - three tier vpc 
 - a general security group 
@@ -11,18 +11,25 @@ AWS cloudformation stack that deploys postfix MTA container instances in AWS Far
 ## Cloudformation Stacks: 
 
 ### 3tier vpc Stack:
-This will create required VPC and Subnets required for the Postfix Fargate instances, internal ALB and helper lambda functions for the target group updater and log groups. I have used [this vpc-multi-tier.yaml](cloudformation-templates/vpc-multi-tier.yaml) file to build the network. 
+This is [AWS Sample Template](https://github.com/aws-samples/vpc-multi-tier) that will create required VPC and Subnets for the Postfix Fargate instances, internal ALB. [This vpc-multi-tier.yaml](cloudformation-templates/vpc-multi-tier.yaml) stack use all defaults build the network. 
 
 ### Sample Security Group
-A generic security group that is being used by containers, ALB and lambda functions. 
+A generic security group that is being used by containers, ALB and lambda functions. At the moment it allows all traffic between the components.  
 
-### ECS Instances and ALBs
-Use [launch-stack.yaml](cloudformation-templates/launch-stack.yaml) to start creating the nested cloudformation stacks. All the parameters are pre-populated in the launch stack for an environment. 
+### Internal ALB
+Creates an internal load balancer that will forward requests to the Postfix MTA agent/container instances through an ECS Service.
 
-### NLB IP Updater (Util)
-A utility stack that updates the target group if in case a public ALB is created to access the postfix stack from another/edge network. 
+### Postfix ECS Fargate Instances. 
+Creates: 
+- ECS cluster
+- ECS Taskdefination 
+- Fargate container instances 
+- ECS Service for the tasks. 
 
-## Environemnt Variables
+### Starting point Launch Stack
+Use [launch-stack.yaml](cloudformation-templates/launch-stack.yaml) to start creating all the nested cloudformation stacks. All the parameters are pre-populated in the launch stack for an environment. 
+
+## Environemnt Variables (pre populated)
 ALLOWED_SENDER_DOMAINS=nqtech.ca
 
 # Architecture Diagram

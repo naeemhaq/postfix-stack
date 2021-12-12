@@ -9,30 +9,30 @@ Parameters:
   InternalOzAzASubnet:
     Description: Interal Oz Az A Subnet
     Type:  String
-    Default: subnet-063c6bc3f7edb7d70
+    Default: subnet-01191d06c3e0927d0
   InternalOzAzBSubnet:
     Description: Internal Oz Az B Subnet
     Type:  String
-    Default: subnet-0815f6c186c5aec22
+    Default: subnet-031975488f123111a
   EcsSecurityGroupId:
     Description: The array of Subnet IDs for the Subnet group
     Type: String
-    Default: sg-0c03d7e992a5c48b2
+    Default: sg-06024827f76d43758
   DeploymentBucket:
     Description: bucket for sourcecode files
     Type: String
-    Default: naeem-bucket
+    Default: nupublicbucket
   ContainerPort:
     Description: Container port to be exposed to service. 
     Type: String
-    Default: 9000
+    Default: 1587
   ServiceName:
     Type: String
-    Default: sonar-qube
+    Default: postfix
   TargetGroupArn:
     Description: TargetGroup Arn of ALB
     Type: String
-    
+    Default: 'arn:aws:elasticloadbalancing:ca-central-1:469685743753:targetgroup/manual2/9f3cec3f7cc0828e'
 
 Conditions:
   IsProd: !Equals [!Ref Environment, 'prod']
@@ -167,7 +167,7 @@ Resources:
                   - s3:GetObject
                   - s3:GetObjectVersion
                 Resource:
-                  - 'arn:aws:s3:::naeem-bucket/*'
+                  - !Sub 'arn:aws:s3:::${DeploymentBucket}/*'
              
 Outputs:
   LogGroupHelperLambdaArn:
