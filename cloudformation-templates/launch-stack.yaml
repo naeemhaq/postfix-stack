@@ -46,7 +46,7 @@ Parameters:
   Email:
     Type: String
     Description: Email for notificaiton topic
-    Default: naeem.ul-haq@nqtech.ca
+    Default: naeem.ulhaq@nqtech.ca
 
 Resources:
   vpc:

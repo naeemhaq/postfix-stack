@@ -9,11 +9,11 @@ Parameters:
   InternalOzAzASubnet:
     Description: Interal Oz Az A Subnet
     Type:  String
-    Default: subnet-01191d06c3e0927d0
+    Default: subnet-02f87bc24b17ccc4f
   InternalOzAzBSubnet:
     Description: Internal Oz Az B Subnet
     Type:  String
-    Default: subnet-031975488f123111a
+    Default: subnet-0bea2011442a3fb1c
   EcsSecurityGroupId:
     Description: The array of Subnet IDs for the Subnet group
     Type: String
@@ -32,7 +32,7 @@ Parameters:
   TargetGroupArn:
     Description: TargetGroup Arn of ALB
     Type: String
-    Default: 'arn:aws:elasticloadbalancing:ca-central-1:469685743753:targetgroup/manual2/9f3cec3f7cc0828e'
+    Default: 'arn:aws:elasticloadbalancing:ca-central-1:469685743753:targetgroup/manual3/dcd48fe85b50aad5'
 
 Conditions:
   IsProd: !Equals [!Ref Environment, 'prod']
@@ -127,13 +127,13 @@ Resources:
       PlatformVersion: '1.4.0'
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: DISABLED
+          AssignPublicIp: ENABLED
           SecurityGroups:
             - !Ref EcsSecurityGroupId
           Subnets:
             - !Ref InternalOzAzASubnet
             - !Ref InternalOzAzBSubnet
-      DesiredCount: 1
+      DesiredCount: 2
       TaskDefinition: !Ref PostfixTaskDefination
       LoadBalancers:
         - ContainerName: !Ref ServiceName
