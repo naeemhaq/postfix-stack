@@ -88,17 +88,4 @@ Resources:
         TargetGroupArn: !GetAtt InternalAlb.Outputs.InternalAlbTargetGroupArn
       TemplateURL: !Sub 'https://s3.amazonaws.com/${DeploymentBucket}/cloudformation-templates/postfix.yaml'
  
-  TargetGroupIpUpdater:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        S3BucketName: !Ref DeploymentBucket
-        S3BucketKey: utils/nlb-ip-updater/populate_NLB_TG_with_ALB.zip
-        InternalALBDNSName: !GetAtt InternalAlb.Outputs.InternalAlbDnsName
-        ALBListenerPort: "443"
-        NLBTargetGroupARN: !GetAtt InternalAlb.Outputs.InternalAlbTargetGroupArn
-        SubnetA: !GetAtt vpc.Outputs.oTier1Subnet1
-        SubnetB: !GetAtt vpc.Outputs.oTier1Subnet2
-        SecurityGroupId: !Ref securityGroup
-      TemplateURL: !Sub 'https://s3.amazonaws.com/${DeploymentBucket}/utils/nlb-ip-updater/poplulate_NLB_TG_with_ALB.json'
       
