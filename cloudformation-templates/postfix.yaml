@@ -127,7 +127,7 @@ Resources:
       PlatformVersion: '1.4.0'
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: DISABLED
           SecurityGroups:
             - !Ref EcsSecurityGroupId
           Subnets:

@@ -80,8 +80,8 @@ Resources:
     Properties:
       Parameters:
         Environment: !Ref Environment
-        InternalOzAzASubnet: !GetAtt vpc.Outputs.oTier1Subnet1
-        InternalOzAzBSubnet: !GetAtt vpc.Outputs.oTier1Subnet2
+        InternalOzAzASubnet: !GetAtt vpc.Outputs.oTier2Subnet1
+        InternalOzAzBSubnet: !GetAtt vpc.Outputs.oTier2Subnet2
         EcsSecurityGroupId: !Ref securityGroup
         DeploymentBucket: !Ref DeploymentBucket
         ContainerPort: !Ref ContainerPort
