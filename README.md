@@ -16,7 +16,11 @@ Only two parameters that are required are:
 - provide the S3 bucket name for the DeploymentBucket parameter where the code is copied 
 - email address for the SNS topic which are used for unhealthy host count alarm. 
 
-Rest of the parameters can be left as defaults. 
+Rest of the parameters can be left as defaults. Follow the rest of the create stack wizard and it will create a main stack and three nested stacks. 
+
+Once the stacks are successfully deployed, go to Internal ALB nested stack and in the outputs tab check InternalAlbDnsName which can be used to send email. Sample link for emails: 
+
+http://internal-postfix-internal-368740970.ca-central-1.elb.amazonaws.com/
 
 ## Cloudformation Stacks: 
 
@@ -28,7 +32,8 @@ A generic security group that is being used by containers, ALB and lambda functi
 #TODO make the SG hardened
 
 ### Internal ALB
-Creates an internal load balancer that will forward requests to the Postfix MTA agent/container instances through an ECS Service.
+Creates http internal load balancer that will forward requests to the Postfix MTA agent/container instances through an ECS Service.
+To avoid complexity of the stack of SSL certs and domain names, have created http ALB. 
 
 ### Postfix ECS Fargate Instances. 
 Creates: 
@@ -52,6 +57,8 @@ ALLOWED_SENDER_DOMAINS=nqtech.ca
 - using public container image, should create private repo and only use approved images for production deployments. 
 - Improve security group inbound and outbound rules, also every compoenent should have its own security group. 
 - go through the sample multi-tier template and check NACL if there ar none create NACLs 
+- Convert ALB to HTTPS
+
 ### Testing
 - create an application to test the emails. 
 
