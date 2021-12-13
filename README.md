@@ -62,6 +62,9 @@ ALLOWED_SENDER_DOMAINS=nqtech.ca
 ### Testing
 - create an application to test the emails. 
 
+### Autoscaling
+- add autoscaling to the stack. 
+
 # Architecture Diagram
 
 ![First Draft image](postfix.drawio.png)

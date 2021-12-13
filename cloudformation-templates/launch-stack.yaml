@@ -73,6 +73,7 @@ Resources:
         PazAzASubnet: !GetAtt vpc.Outputs.oTier1Subnet1
         PazAzBSubnet: !GetAtt vpc.Outputs.oTier1Subnet2
         AlbSecurityGroupId: !Ref securityGroup
+        Email: !Ref Email
       TemplateURL: !Sub 'https://s3.amazonaws.com/${DeploymentBucket}/cloudformation-templates/internal-alb.yaml'
 
   postfix:
