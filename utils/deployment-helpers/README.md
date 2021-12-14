@@ -38,21 +38,21 @@ A typical directory structure on Cloud9 looks as follows.
 Cloud9 comes with Python virtualenv already installed which allows you to use Python libs locally installed in your project instead of system Python libs. Using virtualenv lets you generate a clean list of lib dependencies at the end of your development that will be defined in 'requirements.txt' file. To run your code on Cloud9, first upload the entire 'main' folder to your Cloud9 environment. Open up a terminal and do the following.
 
 ```bash
-NRCan-R-FGP-Admin:~/environment $ cd main
-NRCan-R-FGP-Admin:~/environment/main $ virtualenv venv
+Admin:~/environment $ cd main
+Admin:~/environment/main $ virtualenv venv
 ```
 
 You will now be able to click on the Play button in Cloud9 to execute your code. To install additional Python libs such as 'requests', do the following.
 
 ```bash
-NRCan-R-FGP-Admin:~/environment $ cd main
-NRCan-R-FGP-Admin:~/environment/main $ source ./venv/bin/activate
-(venv) NRCan-R-FGP-Admin:~/environment/main $ pip install requests
+Admin:~/environment $ cd main
+Admin:~/environment/main $ source ./venv/bin/activate
+(venv) Admin:~/environment/main $ pip install requests
 ```
 
 After you're done with your development, export your Python lib dependencies to 'requirements.txt'
 ```bash
-(venv) NRCan-R-FGP-Admin:~/environment/main $ pip freeze > requirements.txt
+(venv) Admin:~/environment/main $ pip freeze > requirements.txt
 ```
 
 **Important Note:** Makre sure you're within virtualenv environment when you run 'pip freeze'. If you're not then all the system Python libs wil be exported to 'requirements.txt' file.
